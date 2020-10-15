@@ -1,4 +1,6 @@
 var lunr = require("elasticlunr");
+const Fuse = require('fuse.js');
+const MiniSearch = require('minisearch');
 var fs = require("fs");
 
 
@@ -45,46 +47,40 @@ function test(dataset, size) {
     console.log("Dataset count: " + files.length);
     console.log(`Dataset size: ${JSON.stringify(files).length / 1000000}Mb`);
 
-
+    const options = {
+        fields: ['data'], // fields to index for full-text search
+        storeFields: ['id'] // fields to return with search results
+    };
     var finaldoc = files.shift();
-    var index = lunr(function () {
-        this.setRef('id');
-        this.addField('data');
-        this.saveDocument(false);
-    });
-
     var idxStr = null;
+    var fuse;
 
     measure("Indexing", () => {
-        index = lunr(function () {
-            this.setRef('id');
-            this.addField('data');
-            this.saveDocument(false);
-            var i = this;
-
-            files.forEach(f => i.addDoc(f));
-        });
+        index = new MiniSearch(options);
+        index.addAll(files);
     });
 
     measure("Store index", () => {
-        //idxJson.documentStore = { toJSON: () => { } }
         idxStr = JSON.stringify(index);
         console.log(`Index size: ${idxStr.length / 1000000}Mb`);
     });
 
     measure("Load index", () => {
-        index = lunr.Index.load(idxStr);
+        index = MiniSearch.loadJSON(idxStr, options);
     });
 
     measure("Search", () => {
-        var results = index.search("ugly");
+        var results = index.search("vacation");
         console.log("Results found:" + results.length);
     });
 
     measure("Add-to-index", () => {
-        index.addDoc(finaldoc);
+        index.add(finaldoc);
     });
 }
 
+var sampleCount = process.argv.slice(2)[0];
+if(!sampleCount)
+    sampleCount = 10000;
 
-test("./email.dat", 1000);
+test("./email.dat", sampleCount);

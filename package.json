@@ -10,6 +10,8 @@
   "license": "ISC",
   "dependencies": {
     "elasticlunr": "^0.9.5",
-    "lunr": "^2.3.9"
+    "fuse.js": "^6.4.1",
+    "lunr": "^2.3.9",
+    "minisearch": "^3.0.0"
   }
 }
