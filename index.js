@@ -39,25 +39,41 @@ function prepare() {
     console.log("done");
 }
 
-function test(dataset) {
+function test(dataset, size) {
 
-    var stats = fs.statSync(dataset)
-    console.log(`Dataset size: ${stats.size / 1000000} Mb`)
-
-    var files = JSON.parse(fs.readFileSync(dataset));
+    var files = JSON.parse(fs.readFileSync(dataset)).slice(0, size);
     console.log("Dataset count: " + files.length);
+    console.log(`Dataset size: ${JSON.stringify(files).length / 1000000}Mb`);
+
 
     var finaldoc = files.shift();
-    var index = null;
+    var index = lunr(function () {
+        this.setRef('id');
+        this.addField('data');
+        this.saveDocument(false);
+    });
+
+    var idxStr = null;
 
     measure("Indexing", () => {
         index = lunr(function () {
             this.setRef('id');
             this.addField('data');
+            this.saveDocument(false);
             var i = this;
 
             files.forEach(f => i.addDoc(f));
         });
+    });
+
+    measure("Store index", () => {
+        //idxJson.documentStore = { toJSON: () => { } }
+        idxStr = JSON.stringify(index);
+        console.log(`Index size: ${idxStr.length / 1000000}Mb`);
+    });
+
+    measure("Load index", () => {
+        index = lunr.Index.load(idxStr);
     });
 
     measure("Search", () => {
@@ -65,10 +81,10 @@ function test(dataset) {
         console.log("Results found:" + results.length);
     });
 
-    measure("Add-to-index", ()=>{
+    measure("Add-to-index", () => {
         index.addDoc(finaldoc);
-    });   
+    });
 }
 
 
-test("/mnt/c/datasets/email.dat");
+test("./email.dat", 1000);
